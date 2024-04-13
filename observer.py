@@ -124,9 +124,9 @@ class Observer:
         
     def observerESO(self, u1,dt, stateQ, xp,state13,u4,u_obs_DOB):#[ESO] thrust,t,q,x!!!!!!
         # 使用神经网络模型
-        ode_torch = torch.load("masschange_my_model_1000_13.pth", map_location=torch.device('cpu'))
+        # ode_torch = torch.load("masschange_my_model_1000_13.pth", map_location=torch.device('cpu'))
         # ode_torch = torch.load("masschange0.05circle_my_model_1000_13_dia.pth", map_location=torch.device('cpu'))
-        # ode_torch = torch.load("masschange0.04circle_my_model_1000_13_dia.pth", map_location=torch.device('cpu'))
+        ode_torch = torch.load("R4masschange0.04circle_my_model_1000_13_dia.pth", map_location=torch.device('cpu'))
 
         param_ls = []
         for idx, layer in ode_torch.items():
@@ -152,7 +152,7 @@ class Observer:
 
         ep1=xp.T-self.zp1
 
-        zp1dot=self.zp2+(self.k[:,:3]@ep1.T).T+f_ode_nn_v
+        zp1dot=self.zp2+(self.k[:,:3]@ep1.T).T#+f_ode_nn_v
         
 
         F=u1 * self.quad_model.rotate_k(stateQ)
@@ -162,8 +162,8 @@ class Observer:
         u_obs_DOB=np.expand_dims(u_obs_DOB,axis=0)
         
         # zp2dot=1/self.mass*(F+self.zp3+self.weight)+(self.k[:,3:6]@ep1.T).T
-        zp2dot=1/self.mass*(F+self.zp3+self.weight+u_obs_DOB)+(self.k[:,3:6]@ep1.T).T+f_ode_nn_a  ##+u_obs_DOB+f_ode_nn_a
-        # zp2dot=1/self.mass*(F+self.zp3+self.weight+u_obs_DOB)+(self.k[:,3:6]@ep1.T).T  ##+u_obs_DOB
+        # zp2dot=1/self.mass*(F+self.zp3+self.weight+u_obs_DOB)+(self.k[:,3:6]@ep1.T).T+f_ode_nn_a  ##+u_obs_DOB+f_ode_nn_a
+        zp2dot=1/self.mass*(F+self.zp3+self.weight+u_obs_DOB)+(self.k[:,3:6]@ep1.T).T  ##+u_obs_DOB
         # zp2dot=1/self.mass*(F+self.zp3+self.weight)+(self.k[:,3:6]@ep1.T).T+f_ode_nn_a
 
         zp3dot=(self.k[:,6:]@ep1.T).T
@@ -186,9 +186,9 @@ class Observer:
     
     def observerDOB(self, u1,dt, state, vdes,ades,state13,u4,u_obs_ESO):#[DOB]thrust,t,q,v,a!!!!!!
         # 使用神经网络模型
-        ode_torch = torch.load("masschange_my_model_1000_13.pth", map_location=torch.device('cpu'))
+        # ode_torch = torch.load("masschange_my_model_1000_13.pth", map_location=torch.device('cpu'))
         # ode_torch = torch.load("masschange0.05circle_my_model_1000_13_dia.pth", map_location=torch.device('cpu'))
-        # ode_torch = torch.load("masschange0.04circle_my_model_1000_13_dia.pth", map_location=torch.device('cpu'))
+        ode_torch = torch.load("R4masschange0.04circle_my_model_1000_13_dia.pth", map_location=torch.device('cpu'))
 
         param_ls = []
         for idx, layer in ode_torch.items():
@@ -224,8 +224,8 @@ class Observer:
         f_model=f_normal+f_ode_nn.T
 
         u_obs_ESO=np.expand_dims(u_obs_ESO,axis=0)
-        self.zxdot=(self.A-self.l_gv@self.g2@self.C)@(self.zx.T)+self.A@self.px.T-self.l_gv@(self.g2@self.C@self.px.T + f_model+self.g2@u_obs_ESO.T)##
-        # self.zxdot=(self.A-self.l_gv@self.g2@self.C)@(self.zx.T)+self.A@self.px.T-self.l_gv@(self.g2@self.C@self.px.T + f_normal+self.g2@u_obs_ESO.T)##
+        # self.zxdot=(self.A-self.l_gv@self.g2@self.C)@(self.zx.T)+self.A@self.px.T-self.l_gv@(self.g2@self.C@self.px.T + f_model+self.g2@u_obs_ESO.T)##
+        self.zxdot=(self.A-self.l_gv@self.g2@self.C)@(self.zx.T)+self.A@self.px.T-self.l_gv@(self.g2@self.C@self.px.T + f_normal+self.g2@u_obs_ESO.T)##
         # self.zxdot=(self.A-self.l_gv@self.g2@self.C)@(self.zx.T)+self.A@self.px.T-self.l_gv@(self.g2@self.C@self.px.T + f_model)##
         # self.zxdot=(self.A-self.l_gv@self.g2@self.C)@(self.zx.T)+self.A@self.px.T-self.l_gv@(self.g2@self.C@self.px.T + self.f.T+ self.g2@F.T)
         self.zxdot=self.zxdot.T
@@ -247,9 +247,9 @@ class Observer:
 
     def observerESOro(self, u2,dt, stateq, xp, state13, u4):#[ESOro] u2,t,q四元数,phi,theta,psi!!!!!!
         # 使用神经网络模型
-        ode_torch = torch.load("masschange_my_model_1000_13.pth", map_location=torch.device('cpu'))
+        # ode_torch = torch.load("masschange_my_model_1000_13.pth", map_location=torch.device('cpu'))
         # ode_torch = torch.load("masschange0.05circle_my_model_1000_13_dia.pth", map_location=torch.device('cpu'))
-        # ode_torch = torch.load("masschange0.04circle_my_model_1000_13_dia.pth", map_location=torch.device('cpu'))
+        ode_torch = torch.load("R4masschange0.04circle_my_model_1000_13_dia.pth", map_location=torch.device('cpu'))
 
         param_ls = []
         for idx, layer in ode_torch.items():
@@ -290,12 +290,12 @@ class Observer:
         #           [-stateq[3], -stateq[2],  stateq[1], stateq[0]]])
         
         # za1dot=(0.5*(G.T @ self.za2.T).T-2*(np.sum(stateq**2) - 1)* stateq)+(self.ka1@ep1.T).T#+f_ode_nn_dq
-        za1dot=(0.5*(G.T @ self.za2.T).T)+(self.ka1@ep1.T).T+f_ode_nn_dq
+        za1dot=(0.5*(G.T @ self.za2.T).T)+(self.ka1@ep1.T).T#+f_ode_nn_dq
         omega_hat = self.quad_model.hat_map(self.za2.squeeze())
         wjw=omega_hat @ (self.inertia @ self.za2.T)
         JW=self.inv_inertia @ (u2 - wjw.T+self.za3).T
         za2dot=JW+(self.ka2@ep1.T)
-        za2dot=za2dot.T+f_ode_nn_dw
+        za2dot=za2dot.T#+f_ode_nn_dw
         za3dot=(self.ka3@ep1.T).T
         
         #扰动估计

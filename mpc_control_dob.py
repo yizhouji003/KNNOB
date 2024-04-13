@@ -41,7 +41,7 @@ class Control(object):
         self.quad_model = quadrotor.Quadrotor()
         
 
-    def generate_OB_control_input(self, u_mpc,u_obs_ESO,stateq,u_dis_DO,u_obs_DO,obs_obs_ro):
+    def generate_OB_control_input(self, u_mpc,u_obs_ESO,stateq,u_dis_DO,u_obs_DO,obs_obs_ro,cur_time):
         cmd_motor_speeds = np.zeros((4,))
         cmd_thrust = 0
         cmd_moment = np.zeros((3,))
@@ -52,8 +52,10 @@ class Control(object):
         u_compensateESO=np.zeros(4)
         u_compensateESO[0]=obs_rotate
         u_diss_ESO=np.zeros(4)
+        # u_diss_ESO[0]=np.array([0.05*cur_time])
+        # u_diss_ESO[0]=np.array([0.4*sin(cur_time)])
+        # u_diss_ESO[0]=0.25*(sin(cur_time)+0.5*cos(1.5*cur_time)+0.1*cur_time)
         u_diss_ESO[0]=np.array([0.5])
-        # u_diss_ESO[0]=np.array([0.9])
 
         u_compensate_DO=np.zeros(4)
         dob_rotate=u_obs_DO @ np.linalg.pinv(rotate)
@@ -63,6 +65,7 @@ class Control(object):
         
         u_diss_ro=np.zeros(4)
         u_diss_ro[1:]=np.array([1e-3,1e-4,1e-5])
+        # u_diss_ro[1:]=sin(0.75*cur_time)*np.array([5e-4,5e-4,5e-4])+np.array([6e-4,6e-4,6e-4])
         # u_diss_ro[1:]=np.array([1e-4,1e-4,1e-4])
         # u_diss_ro[1:]=np.array([1e-4,1e-5,1e-6])
 
@@ -70,9 +73,9 @@ class Control(object):
         u_compensate_ro[1:]=obs_obs_ro
 
         u=u_mpc+u_diss_DO-u_compensate_DO+u_diss_ro-u_compensate_ro+u_diss_ESO-u_compensateESO
-        print("u_diss_ro-u_compensate_ro",u_diss_ro-u_compensate_ro)
-        print("u_compensateESO",u_compensateESO)
-        print("err",u_diss_DO-u_compensate_DO)
+        # print("u_diss_ro-u_compensate_ro",u_diss_ro-u_compensate_ro)
+        # print("u_compensateESO",u_compensateESO)
+        # print("err",u_diss_DO-u_compensate_DO)
         forces = np.squeeze(self.fc_map @ np.squeeze(np.array([u])))#4
         
         for i in range(4): 
@@ -175,7 +178,7 @@ class Control(object):
     #     return control_input
     
 ###更新控制输入u
-    def update(self, state, flat,u_dis,obs_compensate_DOB,obs_compensate_ESO,obs_compensate_ro):
+    def update(self, state, flat,u_dis,obs_compensate_DOB,obs_compensate_ESO,obs_compensate_ro,cur_time):
     # def update(self, state, flat,obs_compensate_ESO):
         opti = Opti()
         x = opti.variable(13, 21)
@@ -204,7 +207,7 @@ class Control(object):
         ###
         # control_input = self.generate_DOB_control_input(sol.value(u[:, 0]),u_dis,obs_compensate_DOB)##DOB
         # control_input = self.generate_ESO_control_input(sol.value(u[:, 0]),obs_compensate_ESO,state['q'])##ESO
-        control_input = self.generate_OB_control_input(sol.value(u[:, 0]),obs_compensate_ESO,state['q'],u_dis,obs_compensate_DOB,obs_compensate_ro)##
+        control_input = self.generate_OB_control_input(sol.value(u[:, 0]),obs_compensate_ESO,state['q'],u_dis,obs_compensate_DOB,obs_compensate_ro,cur_time)##
         
         self.init_mpc += 1
         self.x = sol.value(opti.x)
@@ -233,9 +236,9 @@ class Control(object):
         nominal_model = ode_without_u + u_component
 
         # 使用神经网络模型
-        ode_torch = torch.load("masschange_my_model_1000_13.pth", map_location=torch.device('cpu'))
+        # ode_torch = torch.load("masschange_my_model_1000_13.pth", map_location=torch.device('cpu'))
         # ode_torch = torch.load("masschange0.05circle_my_model_1000_13_dia.pth", map_location=torch.device('cpu'))
-        # ode_torch = torch.load("masschange0.04circle_my_model_1000_13_dia.pth", map_location=torch.device('cpu'))
+        ode_torch = torch.load("R4masschange0.04circle_my_model_1000_13_dia.pth", map_location=torch.device('cpu'))
 
 
         param_ls = []
@@ -249,13 +252,13 @@ class Control(object):
         param_cnt = 0
         hybrid_model =  nominal_model    
 
-        for i in range(n_layers):
-            ode_nn = mtimes(param_ls[param_cnt], ode_nn) + param_ls[param_cnt + 1]##线性层wx+b
-            param_cnt += 2
-            if (i + 1) != n_layers:
-                ode_nn = activation(ode_nn)
+        # for i in range(n_layers):
+        #     ode_nn = mtimes(param_ls[param_cnt], ode_nn) + param_ls[param_cnt + 1]##线性层wx+b
+        #     param_cnt += 2
+        #     if (i + 1) != n_layers:
+        #         ode_nn = activation(ode_nn)
 
-        hybrid_model[:13] = hybrid_model[:13] +  ode_nn
+        # hybrid_model[:13] = hybrid_model[:13] +  ode_nn
 
 
         f = Function('f', [x, u], [hybrid_model])##混合模型的新函数 f
